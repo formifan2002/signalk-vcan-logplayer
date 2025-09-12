@@ -1,0 +1,32 @@
+{
+  "name": "signalk-vcan-logplayer",
+  "version": "1.2.2",
+  "description": "Replay SignalK log files as NMEA2000 via canbus (canboatjs)",
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-webapp",
+    "signalk-category-ais"
+  ],
+  "signalk-plugin-enabled-by-default": true,
+  "main": "index.js",
+  "author": "Dirk Behrendt",
+  "license": "MIT",
+  "dependencies": {
+    "socketcan": "^4.0.7",
+    "axios": "^1.7.0"
+  },
+  "signalk": {
+    "plugin": {
+      "type": "provider",
+      "id": "vcan-logplayer",
+      "name": "VCAN Log Player",
+      "description": "Replay SignalK log files as NMEA2000 via canbus (canboatjs)"
+    }
+  },
+    "files": [
+    "index.js",
+    "package.json",
+    "README.md",
+    "img"
+  ]
+}
