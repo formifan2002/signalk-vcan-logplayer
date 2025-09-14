@@ -1,4 +1,4 @@
-# VCAN Log Player Plugin für Signal K
+# VCAN Log Player Plugin for SignalK
 
 ## Function and goal of the plugin
 
@@ -72,6 +72,6 @@ The plugin is able to replay / reprocess SignalK log files. The original timesta
 
 5. Specific timeframe (yes/no)
     
-    The reprocessing of the log file is only done for a specific time frame. The time frame is configured in two separate fields (start/end) in the format HH:MM:SS. 
+    The reprocessing of the log file is only done for a specific time frame. The time frame is configured in two separate fields (start/end) in the format HH:MM:SS (HH=hours,MM=minutes,SS=seconds - e.g. 23:40:58). End time must be equal or greater than start time.
 
 ATTENTION: SignalK server must be restarted after each configuration change or if a new file has been copied to the input directory!
