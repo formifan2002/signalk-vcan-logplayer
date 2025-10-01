@@ -2,7 +2,6 @@ const fs = require('fs');
 const readline = require('readline');
 const canboat = require('@canboat/canboatjs');
 const { FromPgn } = require('@canboat/canboatjs');
-const n2k = require('@signalk/n2k-signalk'); 
 const n2kMapper = require('@signalk/n2k-signalk/dist/n2kMapper.js');
 const pgnNotFound=[];
 var pgnPath = [];
