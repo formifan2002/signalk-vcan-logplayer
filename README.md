@@ -25,9 +25,9 @@ In case the log file is in SignalK, Actisense or candump variant with timestampe
 
     Specify the directory in which the log file for processing is expected. The name of the log file must be input.log.
 
-2. Create log file
+2. Create log file (yes/no)
 
-   A log file of the (re-)processing (filename: vcan-logplayer.log) of the input file is created in the input directory.
+   During (re-)processing, a log file named vcan-logplayer.log is created in the input directory. It documents the processing of the input file, including informational and error messages, timestamps of processed messages (start/end), counts of each PGN along with their respective sources (SRC), and the description of each PGN.
 
 3. Keep original timing (yes/no)
 

@@ -1,3 +1,5 @@
 module.exports = [
-    {path: 'navigation.gnss.GNSSPseudorangeNoiseStatistics'}
+    {path: 'navigation.gnss.GNSSPseudorangeNoiseStatistics',
+     type: 'object'
+    }
 ]

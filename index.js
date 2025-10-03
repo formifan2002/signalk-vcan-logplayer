@@ -12,6 +12,11 @@ module.exports = function(app) {
   let fileStream;
   let logFileStream;
   let lastTimestamp = null;
+  let startTimestamp=null;
+  let pgnSrcCount = {};
+  let srcCountMap = {};
+  let srcPgnMap = {};
+
   const parser = new FromPgn();
   const plugin = {};
   plugin.id = 'vcan-logplayer';
@@ -28,8 +33,8 @@ module.exports = function(app) {
         },
         createLogfile: {
           type: 'boolean',
-          description: "logfile of processing (vcan-logplayer.log) is created in input directory",
-          title: "Create logfile",
+          description: "Log file of processing (vcan-logplayer.log) is created in input directory with a.o. information about counts of each PGN along with their respective sources (SRC), and the description of each PGN",
+          title: "Create log file",
           default: false
         },
         realtime: {
@@ -69,28 +74,23 @@ module.exports = function(app) {
   plugin._timeframeStartSec = 0;
   plugin._timeframeEndSec = 0;
 
-  function ensureLogStream(filePath) {
-  if (!logFileStream || logFileStream.destroyed) {
-    logFileStream = fs.createWriteStream(filePath, { flags: 'a' }); // append statt 'w'
+  function logInfo(msg) {
+    app.debug(msg);
+    if (plugin.options.createLogfile){
+      if (logFileStream && !logFileStream.destroyed) {
+        logFileStream.write(`[INFO] ${new Date().toLocaleString()} ${msg}\n`);
+      }
+    }
   }
-  return logFileStream;
-}
 
-function logInfo(msg) {
-  app.debug(msg);
-  if (plugin.options.createLogfile){
-    const stream = ensureLogStream(`${plugin.options.inputDirectory}/vcan-logplayer.log`);
-    stream.write(`[INFO] ${new Date().toISOString()} ${msg}\n`);
+  function logError(msg) {
+    app.error(msg);
+    if (plugin.options.createLogfile){  
+      if (logFileStream && !logFileStream.destroyed) {
+        logFileStream.write(`[ERROR] ${new Date().toLocaletring()} ${msg}\n`);
+      }
+    }
   }
-}
-
-function logError(msg) {
-  app.error(msg);
-  if (plugin.options.createLogfile){  
-    const stream = ensureLogStream(`${plugin.options.inputDirectory}/vcan-logplayer.log`);
-    stream.write(`[ERROR] ${new Date().toISOString()} ${msg}\n`);
-  }
-}
 
   function initTimeframe(options) {
     if (!options || !options.timeframe) { plugin._timeframeEnabled = false; return true; }
@@ -114,6 +114,12 @@ function logError(msg) {
     if (isNaN(d.getTime())) return false;
     const localSec = d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds();
     return (localSec >= plugin._timeframeStartSec && localSec <= plugin._timeframeEndSec);
+  }
+
+  function formatLocalTime(ts) {
+  if (!ts) return "unknown";
+  const d = new Date(Number(ts));
+  return d.toLocaleTimeString("de-DE", { hour12: false }); // HH:MM:SS in lokaler Zeit
   }
 
 function normalizeLine(line) {
@@ -211,6 +217,9 @@ function parseNormalizedLine(line) {
     };
     let update=null;
     update = n2kMapper.toDelta(msg);
+    if (parsed.pgn===129044){
+      const test1=1;
+    }
     if (update.updates[0] && update.updates[0].values.length===0 ) {
       if (pgnPath[parsed.pgn]){
         const arr = [];
@@ -230,6 +239,21 @@ function parseNormalizedLine(line) {
             }
         }
         update = n2kMapper.toDelta(msg,null,arr);
+        if (pgnPath[parsed.pgn][0].type === 'object'){
+          const vals = update.updates[0].values;
+          const firstPath = vals[0].path;
+          const idx = firstPath.lastIndexOf('.');
+          const basePath = idx >= 0 ? firstPath.slice(0, idx) : firstPath;
+          const obj = {};
+          for (const v of vals) {
+            if (!v || v.value === undefined) continue;
+            const p = v.path;
+            const idx2 = p.lastIndexOf('.');
+            const propName = idx2 >= 0 ? p.slice(idx2 + 1) : p;
+            obj[propName] = v.value;
+          }
+          update.updates[0].values = [{ path: basePath, value: obj }];
+        }
       }else{
         if (!pgnNotFound[parsed.pgn]){
           pgnNotFound[parsed.pgn]=true;
@@ -238,11 +262,23 @@ function parseNormalizedLine(line) {
       }
     }
     if (update.updates[0].values.length>0){
+       const key = `${parsed.pgn} ${parsed.src}`;
+       if (!pgnSrcCount[key]) pgnSrcCount[key] = { count: 0, description: parsed.description || '' };
+       pgnSrcCount[key].count += 1;
+
+       if (!srcCountMap[parsed.src]) srcCountMap[parsed.src] = 0;
+       srcCountMap[parsed.src] += 1;
+       if (!srcPgnMap[parsed.src]) srcPgnMap[parsed.src] = {};
+       if (!srcPgnMap[parsed.src][parsed.pgn]) srcPgnMap[parsed.src][parsed.pgn] = 0;
+       srcPgnMap[parsed.src][parsed.pgn] += 1;
        update.updates[0].source.label = `${plugin.id} (PGN ${parsed.pgn}, SRC ${parsed.src})`;
        update.updates[0].$source = `${plugin.id} (PGN ${parsed.pgn}, SRC ${parsed.src})`;
        const delta = { context: 'vessels.self', updates: [update.updates[0]] };
        // Wartezeit am Ende
        if (plugin.options.realtime && lastTimestamp && timestamp) {
+          if (!lastTimestamp){
+            startTimestamp=timestamp
+          }
           const wait = timestamp - lastTimestamp;
           if (wait > 0) {
             await new Promise(resolve => setTimeout(resolve, wait));
@@ -254,36 +290,98 @@ function parseNormalizedLine(line) {
   }
   
   plugin.start = function(options) {
-    plugin.options = options;
-    logInfo(`Plugin started with options: ${JSON.stringify(options)})`);
-    running = true;
+  plugin.options = options;
+  running = true;
 
-    if (!initTimeframe(options)) { logError('Timeframe init failed. Please check plugin configuration. Plugin stopped.'); return; }
+  const logPath = `${options.inputDirectory}/vcan-logplayer.log`;
+  if (plugin.options.createLogfile) {
+    // Logdatei zuerst öffnen, bevor irgendwas geschrieben wird
+    logFileStream = fs.createWriteStream(logPath, { flags: 'w' });
+  }
 
-    const filePath = `${options.inputDirectory}/input.log`;
-    if (!fs.existsSync(filePath)) { logError(`Log file not found: ${filePath}`); return; }
+  logInfo(`Plugin started with options: ${JSON.stringify(options)})`);
 
-    const logPath = `${options.inputDirectory}/vcan-logplayer.log`;
-    if (plugin.options.createLogfile){
-      logFileStream = fs.createWriteStream(logPath, { flags: 'w' });
-    }
-    logInfo(`Logging to file: ${logPath}`);
+  if (!initTimeframe(options)) {
+    logError('Timeframe init failed. Please check plugin configuration. Plugin stopped.');
+    return;
+  }
 
-    fileStream = readline.createInterface({ input: fs.createReadStream(filePath), crlfDelay: Infinity });
+  const filePath = `${options.inputDirectory}/input.log`;
+  if (!fs.existsSync(filePath)) {
+    logError(`Log file not found: ${filePath}`);
+    return;
+  }
 
-    fileStream.on('line', line => {
-      if (!running) return;
-      const processLine=normalizeLine(line);
-      if (!processLine) return;
-      processCanboat(processLine.line,processLine.timestamp);
+  logInfo(`Logging to file: ${logPath}`);
+
+  fileStream = readline.createInterface({ input: fs.createReadStream(filePath), crlfDelay: Infinity });
+
+  fileStream.on('line', line => {
+    if (!running) return;
+    const processLine = normalizeLine(line);
+    if (!processLine) return;
+    processCanboat(processLine.line, processLine.timestamp);
+  });
+
+fileStream.on('close', () => {
+  if (Object.keys(pgnSrcCount).length > 0) {
+    logInfo('Processed PGN+SRC counts:');
+
+    const sortedKeys = Object.keys(pgnSrcCount).sort((a, b) => {
+      const [pgnA, srcA] = a.split(' ').map(Number);
+      const [pgnB, srcB] = b.split(' ').map(Number);
+      if (pgnA !== pgnB) return pgnA - pgnB;
+      return srcA - srcB;
     });
 
-    fileStream.on('close', () => { logInfo('Log file closed. Done processing.'); });
-  };
+    let totalCount = 0;
+    sortedKeys.forEach(key => {
+      const [pgn, src] = key.split(' ');
+      const { count, description } = pgnSrcCount[key];
+      totalCount += count;
+      logInfo(`PGN ${pgn} SRC ${src}: ${count} (${description})`);
+    });
+
+    logInfo(`Total messages processed: ${totalCount}`);
+
+    const srcSummary = Object.keys(srcCountMap)
+      .sort((a, b) => a - b)
+      .map(src => `${src} (count: ${srcCountMap[src]})`)
+      .join(', ');
+
+    logInfo(`Processed SRCs: ${srcSummary}`);
+
+    Object.keys(srcPgnMap).sort((a, b) => a - b).forEach(src => {
+      const pgnCounts = Object.entries(srcPgnMap[src])
+        .sort((a, b) => a[0] - b[0])
+        .map(([pgn, count]) => `${pgn}: ${count}`)
+        .join(', ');
+      logInfo(`SRC ${src} processed PGNs: ${pgnCounts}`);
+    });
+  }
+
+  if (startTimestamp) {
+    const startStr = formatLocalTime(startTimestamp);
+    const endStr = formatLocalTime(lastTimestamp);
+    logInfo(`Log file closed. Done processing. (Startzeit: ${startStr} - Endzeit: ${endStr})`);
+  } else {
+    logInfo('Log file closed. Done processing.');
+  }
+
+  if (logFileStream && !logFileStream.destroyed) logFileStream.end();
+});
+
+
+
+};
+
 
   plugin.stop = function() {
     running = false;
     if (fileStream) fileStream.close();
+    if (logFileStream && !logFileStream.destroyed) {
+      logFileStream.end();
+    }
     logInfo('Plugin stopped');
   };
 

@@ -1,3 +1,5 @@
 module.exports = [
-    {path: 'navigation.datetime.129044'}
+    {path: 'navigation.datetime.129044',
+     type: 'object'
+    }
 ]
