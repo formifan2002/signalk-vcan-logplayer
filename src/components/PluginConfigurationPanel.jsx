@@ -22,7 +22,7 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
       inputDirectoryHelp: 'Verzeichnis, in dem sich die input.log-Datei befindet',
       
       createLogfile: 'Log-Datei erstellen',
-      createLogfileHelp: 'Erstellt vcan-logplayer.log mit Verarbeitungsstatistiken',
+      createLogfileHelp: 'Erstellt vcan-logplayer.log mit Verarbeitungsstatistiken im Verzeichnis der Input-Log-Datei',
       
       realtime: 'Originale Zeitsteuerung beibehalten',
       realtimeHelp: 'Daten werden gemäß Zeitstempel aus Log-Datei verarbeitet (mit Wartezeiten)',
@@ -57,7 +57,7 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
       inputDirectoryHelp: 'Directory containing the input.log file',
       
       createLogfile: 'Create log file',
-      createLogfileHelp: 'Creates vcan-logplayer.log with processing statistics',
+      createLogfileHelp: 'Creates vcan-logplayer.log with processing statistics in the input log file directory',
       
       realtime: 'Keep original timing',
       realtimeHelp: 'Data is processed according to timestamp in log file (with waits)',
@@ -134,31 +134,31 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
   };
 
   return (
+
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>VCAN Log Player</h2>
-        <div style={styles.headerRight}>
-          <button 
-            onClick={() => window.open('https://github.com/formifan2002/signalk-vcan-logplayer', '_blank')}
-            style={styles.helpButton}
-          >
-            ℹ️ {currentLang === 'de' ? 'Hilfe' : 'Help'}
-          </button>
-          <div style={styles.languageSelector}>
-            <button 
-              onClick={() => handleLanguageChange('de')}
-              style={{...styles.langButton, ...(currentLang === 'de' ? styles.langButtonActive : {})}}
-            >
-              Deutsch
-            </button>
-            <button 
-              onClick={() => handleLanguageChange('en')}
-              style={{...styles.langButton, ...(currentLang === 'en' ? styles.langButtonActive : {})}}
-            >
-              English
-            </button>
-          </div>
-        </div>
+        <button 
+          onClick={() => window.open('https://github.com/formifan2002/signalk-vcan-logplayer', '_blank')}
+          style={styles.helpButton}
+        >
+          ℹ️ {currentLang === 'de' ? 'Hilfe' : 'Help'}
+        </button>
+      </div>
+
+      <div style={styles.languageSelector}>
+        <button 
+          onClick={() => handleLanguageChange('de')}
+          style={{...styles.langButton, ...(currentLang === 'de' ? styles.langButtonActive : {})}}
+        >
+          Deutsch
+        </button>
+        <button 
+          onClick={() => handleLanguageChange('en')}
+          style={{...styles.langButton, ...(currentLang === 'en' ? styles.langButtonActive : {})}}
+        >
+          English
+        </button>
       </div>
 
       {/* Input Settings */}
@@ -370,6 +370,7 @@ const styles = {
   languageSelector: {
     display: 'flex',
     gap: '10px',
+    marginBottom: '30px',
   },
   langButton: {
     padding: '8px 16px',
@@ -492,6 +493,17 @@ const styles = {
     gap: '10px',
     justifyContent: 'flex-end',
     marginTop: '20px',
+  },
+    helpButton: {
+    padding: '8px 16px',
+    backgroundColor: '#667eea',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '0.95em',
+    transition: 'background 0.3s',
   }
 };
 
