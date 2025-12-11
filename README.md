@@ -42,3 +42,13 @@ In case the log file is in SignalK, Actisense or candump variant with timestampe
     The reprocessing of the log file is only done for a specific time frame. The time frame is configured in two separate fields (start/end) in the format HH:MM:SS (HH=hours,MM=minutes,SS=seconds - e.g. 23:40:58). End time must be equal or greater than start time.
 
 ATTENTION: SignalK server must be restarted if a new file has been copied to the input directory! Alternatively disable the plugin and enable it afterwards again in order to start the processing.
+
+
+## Changelog
+
+### Version 1.0.0
+- Initiales Release
+### Version 1.3.2
+- Enhanced log file information
+### Version 1.4.0
+- Changed to "Embedded Plugin Configuration Forms"

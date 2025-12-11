@@ -1,6 +1,6 @@
 {
   "name": "signalk-vcan-logplayer",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "Replay / reprocess NMEA2000 log files with different format ('SignalK', 'Actisense', 'SocketCAN / candump', 'candump variant with timestamp')",
   "keywords": [
     "signalk-node-server-plugin",
