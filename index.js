@@ -285,6 +285,14 @@ function parseNormalizedLine(line) {
           }
        }
        app.handleMessage(plugin.id, delta)
+       /*
+       if (msg.pgn===126720 || msg.pgn===65379){
+        logInfo(`Autopilot ${JSON.stringify(msg.fields)} msg: ${JSON.stringify(parsed.fields)}`);
+        //const test1=1;
+       }else{
+        logInfo(`PGN: ${msg.pgn}`);
+       }
+       */
     }
     lastTimestamp=timestamp;
   }
