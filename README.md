@@ -52,3 +52,7 @@ ATTENTION: SignalK server must be restarted if a new file has been copied to the
 - Enhanced log file information
 ### Version 1.4.0
 - Changed to "Embedded Plugin Configuration Forms"
+### Version 1.4.1
+- Minor bugfixes
+### Version 1.4.2
+- Minor bugfixes

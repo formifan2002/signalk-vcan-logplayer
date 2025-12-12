@@ -7,6 +7,7 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
   const [status, setStatus] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [dialogData, setDialogData] = useState({ title: '', message: '', callback: null });
+  const [timeframeError, setTimeframeError] = useState('');
 
   const [currentLang, setCurrentLang] = useState(config.language === 'de' ? 'de' : 'en');
 
@@ -34,10 +35,11 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
       timeframeHelp: 'Log-Datei nur für einen bestimmten Zeitraum verarbeiten',
       
       timeframeStart: 'Zeitrahmen-Start:',
-      timeframeStartHelp: 'Format: HH:MM:SS',
+      timeframeStartHelp: 'Startzeit für die Verarbeitung',
       
       timeframeEnd: 'Zeitrahmen-Ende:',
-      timeframeEndHelp: 'Format: HH:MM:SS',
+      timeframeEndHelp: 'Endzeit für die Verarbeitung',
+      timeframeError: 'Endzeit muss größer oder gleich der Startzeit sein',
 
       save: 'Speichern',
       cancel: 'Abbruch',
@@ -69,10 +71,11 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
       timeframeHelp: 'Process log file only for a specific time period',
       
       timeframeStart: 'Timeframe start:',
-      timeframeStartHelp: 'Format: HH:MM:SS',
+      timeframeStartHelp: 'Start time for processing',
       
       timeframeEnd: 'Timeframe end:',
-      timeframeEndHelp: 'Format: HH:MM:SS',
+      timeframeEndHelp: 'End time for processing',
+      timeframeError: 'End time must be greater than or equal to start time',
 
       save: 'Save',
       cancel: 'Cancel',
@@ -87,6 +90,18 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
 
   const handleConfigChange = (key, value) => {
     setConfig(prev => ({ ...prev, [key]: value }));
+    
+    // Überprüfe Zeitrahmen, wenn Start oder Ende geändert wird
+    if (key === 'timeframestart' || key === 'timeframeend') {
+      const start = key === 'timeframestart' ? value : config.timeframestart || '00:00:00';
+      const end = key === 'timeframeend' ? value : config.timeframeend || '23:59:59';
+      
+      if (start && end && start > end) {
+        setTimeframeError(t.timeframeError);
+      } else {
+        setTimeframeError('');
+      }
+    }
   };
 
   const checkUnsavedChanges = () => {
@@ -133,8 +148,37 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
     handleConfigChange('language', lang === 'de');
   };
 
-  return (
+  const handleDirectorySelect = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.webkitdirectory = true;
+    input.directory = true;
+    input.multiple = true;
+    
+    input.onchange = (e) => {
+      const files = e.target.files;
+      if (files.length > 0) {
+        const firstFile = files[0];
+        let directoryPath = '';
+        
+        if (firstFile.webkitRelativePath) {
+          const parts = firstFile.webkitRelativePath.split('/');
+          directoryPath = parts.slice(0, -1).join('/') || parts[0];
+        } else if (firstFile.path) {
+          const parts = firstFile.path.split(/[/\\]/);
+          directoryPath = parts.slice(0, -1).join('/');
+        }
+        
+        if (directoryPath) {
+          handleConfigChange('inputDirectory', directoryPath);
+        }
+      }
+    };
+    
+    input.click();
+  };
 
+  return (
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.title}>VCAN Log Player</h2>
@@ -172,23 +216,11 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
               type="text"
               value={config.inputDirectory || '/home/pi/vcan-logplayer'}
               onChange={(e) => handleConfigChange('inputDirectory', e.target.value)}
-              style={styles.input}
+              style={styles.inputPath}
             />
             <button
               type="button"
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.webkitdirectory = true;
-                input.onchange = (e) => {
-                  if (e.target.files && e.target.files.length > 0) {
-                    const filePath = e.target.files[0].webkitRelativePath || e.target.files[0].path;
-                    const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
-                    handleConfigChange('inputDirectory', dirPath || '/home/pi/vcan-logplayer');
-                  }
-                };
-                input.click();
-              }}
+              onClick={handleDirectorySelect}
               style={styles.fileButton}
             >
               📁
@@ -259,25 +291,34 @@ const PluginConfigurationPanel = ({ configuration, save }) => {
           <>
             <div style={styles.formGroup}>
               <label style={styles.label}>{t.timeframeStart}</label>
-              <input
-                type="text"
-                value={config.timeframestart || '00:00:00'}
-                onChange={(e) => handleConfigChange('timeframestart', e.target.value)}
-                placeholder="HH:MM:SS"
-                style={styles.input}
-              />
+              <div style={styles.timeInputWrapper}>
+                <span style={styles.clockIcon}>🕐</span>
+                <input
+                  type="time"
+                  step="1"
+                  value={config.timeframestart || '00:00:00'}
+                  onChange={(e) => handleConfigChange('timeframestart', e.target.value)}
+                  style={styles.timeInput}
+                />
+              </div>
               <small style={styles.help}>{t.timeframeStartHelp}</small>
             </div>
 
             <div style={styles.formGroup}>
               <label style={styles.label}>{t.timeframeEnd}</label>
-              <input
-                type="text"
-                value={config.timeframeend || '00:00:00'}
-                onChange={(e) => handleConfigChange('timeframeend', e.target.value)}
-                placeholder="HH:MM:SS"
-                style={styles.input}
-              />
+              <div style={{...styles.timeInputWrapper, ...(timeframeError ? styles.timeInputError : {})}}>
+                <span style={styles.clockIcon}>🕐</span>
+                <input
+                  type="time"
+                  step="1"
+                  value={config.timeframeend || '23:59:59'}
+                  onChange={(e) => handleConfigChange('timeframeend', e.target.value)}
+                  style={styles.timeInput}
+                />
+              </div>
+              {timeframeError && (
+                <small style={styles.errorText}>{timeframeError}</small>
+              )}
               <small style={styles.help}>{t.timeframeEndHelp}</small>
             </div>
           </>
@@ -405,13 +446,51 @@ const styles = {
     marginBottom: '5px',
     color: '#333',
   },
-  input: {
+  inputPath: {
     padding: '8px',
     border: '1px solid #ddd',
     borderRadius: '4px',
     fontSize: '1em',
-    width: '100%',
-    maxWidth: '400px',
+    width: '400px',
+  },
+  inputWithButton: {
+    display: 'flex',
+    gap: '5px',
+  },
+  fileButton: {
+    padding: '8px 12px',
+    backgroundColor: '#667eea',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  timeInputWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    border: '1px solid #ddd',
+    borderRadius: '4px',
+    backgroundColor: '#fff',
+    width: 'fit-content',
+  },
+  timeInputError: {
+    borderColor: '#dc3545',
+    backgroundColor: '#fff5f5',
+  },
+  clockIcon: {
+    color: '#667eea',
+    fontSize: '18px',
+    flexShrink: 0,
+  },
+  timeInput: {
+    border: 'none',
+    outline: 'none',
+    fontSize: '1em',
+    fontFamily: 'monospace',
+    padding: '0',
+    width: '110px',
   },
   checkbox: {
     display: 'flex',
@@ -426,6 +505,13 @@ const styles = {
     color: '#666',
     marginTop: '5px',
     fontStyle: 'italic',
+  },
+  errorText: {
+    display: 'block',
+    fontSize: '0.85em',
+    color: '#dc3545',
+    marginTop: '5px',
+    fontWeight: '500',
   },
   buttonGroup: {
     display: 'flex',
@@ -494,7 +580,7 @@ const styles = {
     justifyContent: 'flex-end',
     marginTop: '20px',
   },
-    helpButton: {
+  helpButton: {
     padding: '8px 16px',
     backgroundColor: '#667eea',
     color: 'white',
