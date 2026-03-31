@@ -1,6 +1,6 @@
 {
   "name": "signalk-vcan-logplayer",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Replay / reprocess NMEA2000 log files with different format ('SignalK', 'Actisense', 'SocketCAN / candump', 'candump variant with timestamp')",
   "keywords": [
     "signalk-node-server-plugin",
@@ -28,6 +28,10 @@
     "style-loader": "^3.3.3",
     "webpack": "^5.103.0",
     "webpack-cli": "^5.1.4"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-dom": "*"
   },
   "signalk": {
     "plugin": {

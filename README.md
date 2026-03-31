@@ -54,3 +54,5 @@ ATTENTION: SignalK server must be restarted if a new file has been copied to the
 - Changed to "Embedded Plugin Configuration Forms"
 ### Version 1.4.1-1.4.3
 - Minor bugfixes
+### Version 1.4.4
+ - Adjustments for latest versions of SignalK
